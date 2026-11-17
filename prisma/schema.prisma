@@ -1,0 +1,155 @@
+generator client {
+  provider = "prisma-client-js"
+}
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model Business {
+  id        String   @id @default("default")
+  name      String
+  type      String
+  website   String?
+  phone     String?
+  autoReply Boolean  @default(true)
+  autoFollowUp Boolean @default(false)
+  escalationKeywords String @default("refund,complaint,angry,lawyer,cancel,wrong order")
+  followUpCadenceHours String @default("24,72,168")
+  createdAt DateTime @default(now())
+}
+
+model BrandProfile {
+  id        String @id @default("default")
+  voice     String @default("")
+  tone      String @default("")
+  dos       String @default("")
+  donts     String @default("")
+  websiteText String @default("")
+  hashtags  String @default("")
+  faqs      String @default("[]")
+  updatedAt DateTime @updatedAt
+}
+
+model Product {
+  id          String @id @default(cuid())
+  name        String
+  description String @default("")
+  price       Float?
+  createdAt   DateTime @default(now())
+}
+
+model ContentItem {
+  id        String @id @default(cuid())
+  kind      String   // post | image | video
+  caption   String @default("")
+  hashtags  String @default("")
+  mediaUrl  String?
+  script    String?
+  status    String @default("draft") // draft | pending_approval | approved | scheduled | published | rejected
+  scheduledFor DateTime?
+  publishedAt  DateTime?
+  externalId   String?
+  theme     String?
+  createdAt DateTime @default(now())
+}
+
+model Campaign {
+  id        String @id @default(cuid())
+  channel   String   // meta_ad | whatsapp
+  name      String
+  objective String @default("")
+  audience  String @default("")
+  budget    Float?
+  message   String @default("")
+  status    String @default("draft") // draft | pending_approval | live | rejected
+  externalId String?
+  createdAt DateTime @default(now())
+}
+
+model Contact {
+  id       String @id @default(cuid())
+  name     String
+  channel  String   // whatsapp | instagram | phone
+  handle   String
+  optedIn  Boolean @default(true)
+  conversations Conversation[]
+  leads    Lead[]
+  createdAt DateTime @default(now())
+  @@unique([channel, handle])
+}
+
+model Conversation {
+  id        String @id @default(cuid())
+  contactId String
+  contact   Contact @relation(fields: [contactId], references: [id])
+  channel   String
+  needsOwner Boolean @default(false)
+  messages  Message[]
+  updatedAt DateTime @updatedAt
+}
+
+model Message {
+  id        String @id @default(cuid())
+  conversationId String
+  conversation Conversation @relation(fields: [conversationId], references: [id])
+  direction String // in | out
+  sender    String // customer | assistant | owner
+  body      String
+  status    String @default("sent") // sent | draft
+  createdAt DateTime @default(now())
+}
+
+model Lead {
+  id        String @id @default(cuid())
+  contactId String
+  contact   Contact @relation(fields: [contactId], references: [id])
+  stage     String @default("new") // new | contacted | interested | won | lost
+  interest  String @default("")
+  source    String @default("")
+  followUpCount Int @default(0)
+  nextFollowUpAt DateTime?
+  notes     String @default("")
+  createdAt DateTime @default(now())
+}
+
+model CallLog {
+  id        String @id @default(cuid())
+  callerNumber String
+  callerName String?
+  transcript String
+  summary   String
+  leadId    String?
+  callbackRequested Boolean @default(false)
+  createdAt DateTime @default(now())
+}
+
+model PendingAction {
+  id        String @id @default(cuid())
+  type      String // publish_post | launch_campaign | send_followup
+  title     String
+  payload   String // JSON
+  status    String @default("pending") // pending | approved | rejected | failed
+  result    String?
+  createdBy String @default("marketing") // marketing | customer | owner
+  createdAt DateTime @default(now())
+  decidedAt DateTime?
+}
+
+model ChatMessage {
+  id        String @id @default(cuid())
+  agent     String // marketing | customer
+  role      String // user | assistant
+  body      String
+  createdAt DateTime @default(now())
+}
+
+model Metric {
+  id        String @id @default(cuid())
+  refType   String // content | campaign
+  refId     String
+  impressions Int @default(0)
+  engagements Int @default(0)
+  clicks    Int @default(0)
+  recordedAt DateTime @default(now())
+}
